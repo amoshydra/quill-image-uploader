@@ -71,7 +71,7 @@
           
                 if (progress > 100) {
                   clearInterval(intervalId);
-                  resolve(URL.createObjectURL(file))
+                  resolve(URL.createObjectURL(wrapper.file))
                 }
               }, 300)
             });
