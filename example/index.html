@@ -73,7 +73,7 @@
                   clearInterval(intervalId);
                   resolve(URL.createObjectURL(wrapper.file))
                 }
-              }, 300)
+              }, wrapper.file.size / 500)
             });
           }
         },
