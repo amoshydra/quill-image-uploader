@@ -75,12 +75,16 @@
                   clearInterval(intervalId);
                   resolve(URL.createObjectURL(wrapper.file))
                 }
-              }, wrapper.file.size / 500000)
+              }, (
+                wrapper.file.size / (
+                  parseFloat((location.search.match(/rate=(\d+)/) || [])[1])
+                  || 500000
+                )
+              ))
             });
           }
         },
       },
-
     });
   </script>
 </body>
