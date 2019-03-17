@@ -28,20 +28,23 @@
         });
     }
 
-    const ERROR_FILE_SIZE_EXCEEDED = 'ERROR_FILE_SIZE_EXCEEDED';
-    const createFileInputElement = (providedAttributes) => {
+    const createFileInputElement = (attributes) => {
         const inputElement = document.createElement('input');
-        Object.entries(Object.assign({ accept: 'image/png, image/gif, image/jpeg, image/bmp, image/x-icon' }, providedAttributes, { type: 'file' }))
+        Object.entries(Object.assign({ accept: 'image/png, image/gif, image/jpeg, image/bmp, image/x-icon' }, (attributes || {}), { type: 'file' }))
             .forEach(([key, value]) => {
             inputElement.setAttribute(key, value);
         });
         return inputElement;
     };
+    //# sourceMappingURL=create-file-input-element.js.map
+
+    const ERROR_FILE_SIZE_EXCEEDED = 'ERROR_FILE_SIZE_EXCEEDED';
+    const noop = () => { };
     const setupConfig = (userProvidedConfig = {}) => (Object.assign({ 
         // Options
         maxSize: 0, fileInputAttributes: {}, 
         // Handlers
-        imageUploadHandler: () => { }, errorHandler: () => { } }, userProvidedConfig));
+        uploadHandler: Promise.resolve, beforeUploadHandler: noop, onContentInsert: noop, onFinish: noop, onError: noop }, userProvidedConfig));
     class QuillImageUploader {
         static imageHandler() {
             // @ts-ignore // quill.options is present in actual object but not in typed definition
@@ -51,59 +54,59 @@
             this.quill = quill;
             this.config = setupConfig(userProvidedConfig);
             this.inputElement = createFileInputElement(this.config.fileInputAttributes);
+            this.attachEventListeners();
+        }
+        attachEventListeners() {
             // @ts-ignore // quill.options is present in actual object but not in typed definition
             this.quill.options.modules.toolbar.handlers.image = this.inputElement.click.bind(this.inputElement);
-            // Attach event listeners
             [
                 {
                     el: this.inputElement,
                     name: 'change',
-                    handler: this.fileInputEventHandler.bind(this, ({ target }) => target)
+                    handler: this.handleFileEvent.bind(this, ({ target }) => target)
                 },
                 {
-                    el: quill.root,
+                    el: this.quill.root,
                     name: 'paste',
-                    handler: this.fileInputEventHandler.bind(this, ({ clipboardData }) => clipboardData)
+                    handler: this.handleFileEvent.bind(this, ({ clipboardData }) => clipboardData)
                 },
                 {
-                    el: quill.root,
+                    el: this.quill.root,
                     name: 'drop',
-                    handler: this.fileInputEventHandler.bind(this, ({ dataTransfer }) => dataTransfer)
+                    handler: this.handleFileEvent.bind(this, ({ dataTransfer }) => dataTransfer)
                 },
             ]
                 .forEach(({ el, name, handler }) => el.addEventListener(name, handler, false));
         }
-        checkFileError(file) {
-            if ((this.config.maxSize != 0) && (file.size > this.config.maxSize)) {
-                return ERROR_FILE_SIZE_EXCEEDED;
-            }
-            return;
-        }
         // Event Handlers
-        fileInputEventHandler(accessorFn, event) {
+        handleFileEvent(accessorFn, event) {
+            const [file] = accessorFn(event).files;
+            if (!file)
+                return;
+            event.preventDefault();
+            this.processFile(file);
+        }
+        processFile(file) {
             return __awaiter(this, void 0, void 0, function* () {
-                const [file] = accessorFn(event).files;
-                if (!file)
-                    return;
-                event.preventDefault();
                 try {
+                    this.config.beforeUploadHandler.call(this, file);
                     this.beforeUpload(file);
-                    const uploadWrapper = yield this.registerUploadElement(file);
-                    const url = yield this.config.imageUploadHandler.call(this, uploadWrapper);
+                    const uploadWrapper = yield this.insertContent(file);
+                    const url = yield this.config.uploadHandler.call(this, uploadWrapper);
+                    this.config.onFinish.call(this, url);
                     uploadWrapper.finalizeUpload(url);
                 }
                 catch (error) {
-                    this.config.errorHandler(error);
+                    this.config.onError.call(this, error);
                 }
             });
         }
         beforeUpload(file) {
-            const error = this.checkFileError(file);
-            if (error) {
-                throw new Error(error);
+            if ((this.config.maxSize != 0) && (file.size > this.config.maxSize)) {
+                throw new Error(ERROR_FILE_SIZE_EXCEEDED);
             }
         }
-        registerUploadElement(file) {
+        insertContent(file) {
             return new Promise((resolve) => {
                 this.quill.insertEmbed((this.quill.getSelection(true) || { index: this.quill.getLength() }).index, 'uploaded-image', {
                     file,
@@ -112,6 +115,7 @@
             });
         }
     }
+    //# sourceMappingURL=quill-image-uploader.js.map
 
     class UploadedImageElementWrapper {
         constructor(wrapperEl, file) {
@@ -163,10 +167,14 @@
             _a.className = 'uploaded-image',
             _a;
     };
+    //# sourceMappingURL=uploaded-image-blot.js.map
+
+    //# sourceMappingURL=index.js.map
 
     exports.ERROR_FILE_SIZE_EXCEEDED = ERROR_FILE_SIZE_EXCEEDED;
     exports.QuillImageUploader = QuillImageUploader;
     exports.createUploadedImageBlot = createUploadedImageBlot;
+    exports.UploadedImageElementWrapper = UploadedImageElementWrapper;
 
     Object.defineProperty(exports, '__esModule', { value: true });
 
