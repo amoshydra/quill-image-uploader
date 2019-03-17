@@ -29,9 +29,6 @@
     }
 
     const ERROR_FILE_SIZE_EXCEEDED = 'ERROR_FILE_SIZE_EXCEEDED';
-    const imageHandler = function imageHandler() {
-        this.quill.options.modules.toolbar.handlers.image();
-    };
     const createFileInputElement = (providedAttributes) => {
         const inputElement = document.createElement('input');
         Object.entries(Object.assign({ accept: 'image/png, image/gif, image/jpeg, image/bmp, image/x-icon' }, providedAttributes, { type: 'file' }))
@@ -46,18 +43,35 @@
         // Handlers
         imageUploadHandler: () => { }, errorHandler: () => { } }, userProvidedConfig));
     class QuillImageUploader {
+        static imageHandler() {
+            // @ts-ignore // quill.options is present in actual object but not in typed definition
+            this.quill.options.modules.toolbar.handlers.image();
+        }
         constructor(quill, userProvidedConfig) {
             this.quill = quill;
             this.config = setupConfig(userProvidedConfig);
             this.inputElement = createFileInputElement(this.config.fileInputAttributes);
+            // @ts-ignore // quill.options is present in actual object but not in typed definition
             this.quill.options.modules.toolbar.handlers.image = this.inputElement.click.bind(this.inputElement);
             // Attach event listeners
             [
-                [this.inputElement, 'change', this.fileInputEventHandler.bind(this, 'target')],
-                [quill.root, 'paste', this.fileInputEventHandler.bind(this, 'clipboardData')],
-                [quill.root, 'drop', this.fileInputEventHandler.bind(this, 'dataTransfer')],
+                {
+                    el: this.inputElement,
+                    name: 'change',
+                    handler: this.fileInputEventHandler.bind(this, ({ target }) => target)
+                },
+                {
+                    el: quill.root,
+                    name: 'paste',
+                    handler: this.fileInputEventHandler.bind(this, ({ clipboardData }) => clipboardData)
+                },
+                {
+                    el: quill.root,
+                    name: 'drop',
+                    handler: this.fileInputEventHandler.bind(this, ({ dataTransfer }) => dataTransfer)
+                },
             ]
-                .forEach(([el, ...params]) => el.addEventListener(...params, false));
+                .forEach(({ el, name, handler }) => el.addEventListener(name, handler, false));
         }
         checkFileError(file) {
             if ((this.config.maxSize != 0) && (file.size > this.config.maxSize)) {
@@ -66,10 +80,9 @@
             return;
         }
         // Event Handlers
-        fileInputEventHandler(accessor, event) {
+        fileInputEventHandler(accessorFn, event) {
             return __awaiter(this, void 0, void 0, function* () {
-                console.log(accessor, event[accessor].files);
-                const [file] = [...event[accessor].files];
+                const [file] = accessorFn(event).files;
                 if (!file)
                     return;
                 event.preventDefault();
@@ -92,7 +105,7 @@
         }
         registerUploadElement(file) {
             return new Promise((resolve) => {
-                this.quill.insertEmbed((this.quill.getSelection(true) || {}).index, 'uploaded-image', {
+                this.quill.insertEmbed((this.quill.getSelection(true) || { index: this.quill.getLength() }).index, 'uploaded-image', {
                     file,
                     createHandler: resolve,
                 });
@@ -123,7 +136,7 @@
                 : this.imageEl.parentNode);
         }
         updateProgress(progress) {
-            this.el.dataset.progress = progress;
+            this.el.dataset.progress = `${progress}`;
         }
         finalizeUpload(newImageLink) {
             if (!this.removed) {
@@ -133,26 +146,25 @@
         }
     }
     const createUploadedImageBlot = (Quill) => {
-        const BlockEmbed = Quill.import('blots/block/embed');
-        class UploadImageBlot extends BlockEmbed {
-            static create({ file, createHandler }) {
-                const wrapperEl = super.create();
-                const wrapper = new UploadedImageElementWrapper(wrapperEl, file);
-                createHandler(wrapper);
-                return wrapper.el;
-            }
-            static value(node) {
-                return node._wrapper;
-            }
-        }
-        UploadImageBlot.blotName = 'uploaded-image';
-        UploadImageBlot.tagName = 'div';
-        UploadImageBlot.className = 'uploaded-image';
-        return UploadImageBlot;
+        var _a;
+        return _a = class UploadImageBlot extends Quill.import('blots/block/embed') {
+                static create({ file, createHandler }) {
+                    const wrapperEl = super.create();
+                    const wrapper = new UploadedImageElementWrapper(wrapperEl, file);
+                    createHandler(wrapper);
+                    return wrapper.el;
+                }
+                static value(node) {
+                    return node._wrapper;
+                }
+            },
+            _a.blotName = 'uploaded-image',
+            _a.tagName = 'div',
+            _a.className = 'uploaded-image',
+            _a;
     };
 
     exports.ERROR_FILE_SIZE_EXCEEDED = ERROR_FILE_SIZE_EXCEEDED;
-    exports.imageHandler = imageHandler;
     exports.QuillImageUploader = QuillImageUploader;
     exports.createUploadedImageBlot = createUploadedImageBlot;
 
