@@ -1,10 +1,7 @@
 import quill from "quill";
+import { UploadedImageElementWrapperElement } from "./types/upload-image-element-wrapper-element.interface";
 
-interface UploadedImageElementWrapperElement extends HTMLElement {
-  _wrapper: UploadedImageElementWrapper;
-}
-
-class UploadedImageElementWrapper {
+export class UploadedImageElementWrapper {
   id: Number;
   el: UploadedImageElementWrapperElement;
   imageEl: Element;
@@ -51,9 +48,7 @@ class UploadedImageElementWrapper {
 }
 
 export const createUploadedImageBlot = (Quill: typeof quill) => {
-  const BlockEmbed = Quill.import('blots/block/embed');
-  
-  class UploadImageBlot extends BlockEmbed {
+  return class UploadImageBlot extends Quill.import('blots/block/embed') {
     static blotName = 'uploaded-image';
     static tagName = 'div';
     static className = 'uploaded-image';
@@ -69,6 +64,4 @@ export const createUploadedImageBlot = (Quill: typeof quill) => {
       return node._wrapper;
     }
   }
-  
-  return UploadImageBlot;
 };
