@@ -4,10 +4,6 @@ import { UserProvidedQuillImageUploaderConfig } from "./types/user-provided-quil
 import { QuillImageUploaderConfig } from "./types/quill-image-uploader-config.interface";
 
 export const ERROR_FILE_SIZE_EXCEEDED = 'ERROR_FILE_SIZE_EXCEEDED';
-export const imageHandler = function imageHandler(this: QuillImageUploader) {
-  // @ts-ignore // quill.options is present in actual object but not in typed definition
-  this.quill.options.modules.toolbar.handlers.image();
-};
 
 const createFileInputElement = (providedAttributes: object) => {
   const inputElement = document.createElement('input');
@@ -39,6 +35,11 @@ export class QuillImageUploader {
   quill: Quill;
   config: QuillImageUploaderConfig;
   inputElement: Element;
+
+  static imageHandler(this: QuillImageUploader) {
+    // @ts-ignore // quill.options is present in actual object but not in typed definition
+    this.quill.options.modules.toolbar.handlers.image();
+  }
 
   constructor(quill: Quill, userProvidedConfig: UserProvidedQuillImageUploaderConfig) {
     this.quill = quill;
