@@ -23,6 +23,10 @@ const makeMockQuill = (mockWrapper) => ({
   },
 });
 
+const makeMockWrapper = (x = {}) => ({
+  finalizeUpload: fake(x.finalizeUpload || (() => '')),
+});
+
 const wait = (condition, timeout = 5000, checkInterval = 1) => {
   let timeElapsed = 0;
   return new Promise((resolve, reject) => {
@@ -48,7 +52,7 @@ test('should call the provided handler when a file is received', async t => {
     uploadHandler: fake.resolves('http://mock-url'),
   };
   const mockFile = {};
-  const mockWrapper = {};
+  const mockWrapper = makeMockWrapper();
   const mockWrapperPromise = Promise.resolve(mockWrapper);
   const mockQuill = makeMockQuill(mockWrapperPromise)
 
@@ -63,21 +67,21 @@ test('should call the provided handler when a file is received', async t => {
 test('should call the provided error handler when an error occured, and stop upload', async t => {
   const customError = new Error('custom error');
   const handlers = {
-    errorHandler: fake(),
+    onError: fake(),
     uploadHandler: fake.resolves('http://mock-url'),
     beforeUploadHandler: fake(() => {
       throw customError;
     }),
   };
   const mockFile = {};
-  const mockWrapper = {};
+  const mockWrapper = makeMockWrapper();
   const mockWrapperPromise = Promise.resolve(mockWrapper);
   const mockQuill = makeMockQuill(mockWrapperPromise)
 
   const quillImageUploader = new QuillImageUploader(mockQuill, handlers);
   quillImageUploader.processFile(mockFile)
   t.true(handlers.beforeUploadHandler.calledOnceWith(mockFile));
-  t.true(handlers.errorHandler.calledOnceWithExactly(customError));
+  t.true(handlers.onError.calledOnceWithExactly(customError));
 
   try {
     await wait(() => handlers.uploadHandler.calledOnce, 100);
