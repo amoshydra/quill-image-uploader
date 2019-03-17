@@ -5,15 +5,18 @@ import { QuillImageUploaderConfig } from "./types/quill-image-uploader-config.in
 import { createFileInputElement } from "./core/create-file-input-element";
 
 export const ERROR_FILE_SIZE_EXCEEDED = 'ERROR_FILE_SIZE_EXCEEDED';
+const noop = () => {};
 
 const setupConfig = (userProvidedConfig: UserProvidedQuillImageUploaderConfig = {}) => ({
   // Options
   maxSize: 0,
   fileInputAttributes: {},
   // Handlers
-  uploadHandler: () => {},
-  errorHandler: () => {},
-  beforeUploadHandler: () => {},
+  uploadHandler: Promise.resolve,
+  beforeUploadHandler: noop,
+  onContentInsert: noop,
+  onFinish: noop,
+  onError: noop,
   // ...
   ...userProvidedConfig,
 });
@@ -60,13 +63,6 @@ export class QuillImageUploader {
     ;
   }
 
-  beforeUpload(file: File) {
-    if ((this.config.maxSize != 0) && (file.size > this.config.maxSize)) {
-      throw new Error(ERROR_FILE_SIZE_EXCEEDED);
-    }
-    this.config.beforeUploadHandler.call(this, file);
-  }
-
   // Event Handlers
   handleFileEvent(accessorFn: Function, event: ClipboardEvent | DragEvent | Event) {
     const [ file ] = accessorFn(event).files;
@@ -79,17 +75,27 @@ export class QuillImageUploader {
 
   async processFile(file: File) {
     try {
+      this.config.beforeUploadHandler.call(this, file);
       this.beforeUpload(file);
 
-      const uploadWrapper = await this.registerUploadElement(file)
+      const uploadWrapper = await this.insertContent(file);
+
       const url = await this.config.uploadHandler.call(this, uploadWrapper);
+
+      this.config.onFinish.call(this, url);
       uploadWrapper.finalizeUpload(url);
     } catch (error) {
-      this.config.errorHandler(error);
+      this.config.onError.call(this, error);
     }
   }
 
-  registerUploadElement(file: File): Promise<UploadedImageElementWrapper> {
+  beforeUpload(file: File) {
+    if ((this.config.maxSize != 0) && (file.size > this.config.maxSize)) {
+      throw new Error(ERROR_FILE_SIZE_EXCEEDED);
+    }
+  }
+
+  insertContent(file: File): Promise<UploadedImageElementWrapper> {
     return new Promise((resolve) => {
       this.quill.insertEmbed(
         (this.quill.getSelection(true) || { index: this.quill.getLength() }).index,

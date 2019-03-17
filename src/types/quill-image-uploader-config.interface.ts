@@ -1,7 +1,15 @@
+import {
+  UploadHandlerFunction,
+  BeforeUploadHandlerFunction,
+  OnFinishFunction,
+  OnErrorFunction,
+} from "./quill-image-uploader-config-function.type";
+
 export interface QuillImageUploaderConfig {
   maxSize: number,
   fileInputAttributes: object,
-  uploadHandler: Function,
-  beforeUploadHandler: Function,
-  errorHandler: Function,
+  uploadHandler: UploadHandlerFunction,
+  beforeUploadHandler: BeforeUploadHandlerFunction,
+  onFinish: OnFinishFunction,
+  onError: OnErrorFunction,
 }
