@@ -11,8 +11,9 @@ const setupConfig = (userProvidedConfig: UserProvidedQuillImageUploaderConfig = 
   maxSize: 0,
   fileInputAttributes: {},
   // Handlers
-  imageUploadHandler: () => {},
+  uploadHandler: () => {},
   errorHandler: () => {},
+  beforeUploadHandler: () => {},
   // ...
   ...userProvidedConfig,
 });
@@ -32,62 +33,60 @@ export class QuillImageUploader {
     this.config = setupConfig(userProvidedConfig);
     this.inputElement = createFileInputElement(this.config.fileInputAttributes);
 
+    this.attachEventListeners();
+  }
+
+  attachEventListeners() {
     // @ts-ignore // quill.options is present in actual object but not in typed definition
     this.quill.options.modules.toolbar.handlers.image = this.inputElement.click.bind(this.inputElement);
-
-    // Attach event listeners
     [
       {
         el: this.inputElement,
         name: 'change',
-        handler: this.fileInputEventHandler.bind(this, ({ target }: Event) => target)
+        handler: this.handleFileEvent.bind(this, ({ target }: Event) => target)
       },
       {
-        el: quill.root,
+        el: this.quill.root,
         name: 'paste',
-        handler: this.fileInputEventHandler.bind(this, ({ clipboardData }: ClipboardEvent) => clipboardData)
+        handler: this.handleFileEvent.bind(this, ({ clipboardData }: ClipboardEvent) => clipboardData)
       },
       {
-        el: quill.root,
+        el: this.quill.root,
         name: 'drop',
-        handler: this.fileInputEventHandler.bind(this, ({ dataTransfer }: DragEvent) => dataTransfer)
+        handler: this.handleFileEvent.bind(this, ({ dataTransfer }: DragEvent) => dataTransfer)
       },
     ]
       .forEach(({ el, name, handler }) => el.addEventListener(name, handler, false))
     ;
   }
 
-  checkFileError(file: File) {
+  beforeUpload(file: File) {
     if ((this.config.maxSize != 0) && (file.size > this.config.maxSize)) {
-      return ERROR_FILE_SIZE_EXCEEDED;
+      throw new Error(ERROR_FILE_SIZE_EXCEEDED);
     }
-
-    return;
+    this.config.beforeUploadHandler.call(this, file);
   }
 
   // Event Handlers
-  async fileInputEventHandler(accessorFn: Function, event: ClipboardEvent | DragEvent | Event) {
+  handleFileEvent(accessorFn: Function, event: ClipboardEvent | DragEvent | Event) {
     const [ file ] = accessorFn(event).files;
 
     if (!file) return;
     event.preventDefault();
-  
+
+    this.processFile(file);
+  }
+
+  async processFile(file: File) {
     try {
       this.beforeUpload(file);
 
       const uploadWrapper = await this.registerUploadElement(file)
-      const url = await this.config.imageUploadHandler.call(this, uploadWrapper);
+      const url = await this.config.uploadHandler.call(this, uploadWrapper);
       uploadWrapper.finalizeUpload(url);
     } catch (error) {
       this.config.errorHandler(error);
     }
-  }
-
-  beforeUpload(file: File) {
-    const error = this.checkFileError(file);
-    if (error) {
-      throw new Error(error);
-    };
   }
 
   registerUploadElement(file: File): Promise<UploadedImageElementWrapper> {

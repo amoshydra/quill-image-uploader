@@ -1,6 +1,7 @@
 export interface QuillImageUploaderConfig {
   maxSize: number,
   fileInputAttributes: object,
-  imageUploadHandler: Function,
+  uploadHandler: Function,
+  beforeUploadHandler: Function,
   errorHandler: Function,
 }
