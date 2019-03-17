@@ -2,23 +2,9 @@ import Quill from "quill";
 import { UploadedImageElementWrapper } from "./uploaded-image-blot";
 import { UserProvidedQuillImageUploaderConfig } from "./types/user-provided-quill-image-uploader-config.interface";
 import { QuillImageUploaderConfig } from "./types/quill-image-uploader-config.interface";
+import { createFileInputElement } from "./core/create-file-input-element";
 
 export const ERROR_FILE_SIZE_EXCEEDED = 'ERROR_FILE_SIZE_EXCEEDED';
-
-const createFileInputElement = (providedAttributes: object) => {
-  const inputElement = document.createElement('input');
-
-  Object.entries({
-    accept: 'image/png, image/gif, image/jpeg, image/bmp, image/x-icon',
-    ...providedAttributes,
-    type: 'file',
-  })
-    .forEach(([key, value]) => {
-      inputElement.setAttribute(key, value);
-    })
-  ;
-  return inputElement;
-};
 
 const setupConfig = (userProvidedConfig: UserProvidedQuillImageUploaderConfig = {}) => ({
   // Options
