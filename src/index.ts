@@ -4,4 +4,5 @@ export {
 } from './quill-image-uploader';
 export {
   createUploadedImageBlot,
+  UploadedImageElementWrapper,
 } from './uploaded-image-blot';
