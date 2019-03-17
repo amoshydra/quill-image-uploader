@@ -57,6 +57,7 @@ export class QuillImageUploader {
 
   // Event Handlers
   async fileInputEventHandler(accessor, event) {
+    console.log(accessor, event[accessor].files)
     const [ file ] = [...event[accessor].files];
     if (!file) return;
     event.preventDefault();
