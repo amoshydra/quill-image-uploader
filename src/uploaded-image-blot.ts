@@ -1,5 +1,16 @@
+import quill from "quill";
+
+interface UploadedImageElementWrapperElement extends HTMLElement {
+  _wrapper: UploadedImageElementWrapper;
+}
+
 class UploadedImageElementWrapper {
-  constructor(wrapperEl, file) {
+  id: Number;
+  el: UploadedImageElementWrapperElement;
+  imageEl: Element;
+  file: File;
+
+  constructor(wrapperEl: UploadedImageElementWrapperElement, file: File) {
     wrapperEl._wrapper = this;
 
     // Create image
@@ -27,11 +38,11 @@ class UploadedImageElementWrapper {
     );
   }
 
-  updateProgress(progress) {
-    this.el.dataset.progress = progress;
+  updateProgress(progress: string | number) {
+    this.el.dataset.progress = `${progress}`;
   }
 
-  finalizeUpload(newImageLink) {
+  finalizeUpload(newImageLink: string) {
     if (!this.removed) {
       this.imageEl.setAttribute('src', newImageLink);
       this.el.outerHTML = this.imageEl.outerHTML;
@@ -39,7 +50,7 @@ class UploadedImageElementWrapper {
   }
 }
 
-export const createUploadedImageBlot = (Quill) => {
+export const createUploadedImageBlot = (Quill: typeof quill) => {
   const BlockEmbed = Quill.import('blots/block/embed');
   
   class UploadImageBlot extends BlockEmbed {
@@ -47,19 +58,17 @@ export const createUploadedImageBlot = (Quill) => {
     static tagName = 'div';
     static className = 'uploaded-image';
 
-    static create({ file, createHandler }) {
+    static create({ file, createHandler }: { file: File, createHandler: Function }) {
       const wrapperEl = super.create();
       const wrapper = new UploadedImageElementWrapper(wrapperEl, file);
       createHandler(wrapper);
       return wrapper.el;
     }
   
-    static value(node) {
+    static value(node: UploadedImageElementWrapperElement) {
       return node._wrapper;
     }
   }
-  
-  
   
   return UploadImageBlot;
 };
