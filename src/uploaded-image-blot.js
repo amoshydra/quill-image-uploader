@@ -41,25 +41,23 @@ class UploadedImageElementWrapper {
 
 export const createUploadedImageBlot = (Quill) => {
   const BlockEmbed = Quill.import('blots/block/embed');
-  
-  class UploadImageBlot extends BlockEmbed {
-    static blotName = 'uploaded-image';
-    static tagName = 'div';
-    static className = 'uploaded-image';
 
+  class UploadImageBlot extends BlockEmbed {
     static create({ file, createHandler }) {
       const wrapperEl = super.create();
       const wrapper = new UploadedImageElementWrapper(wrapperEl, file);
       createHandler(wrapper);
       return wrapper.el;
     }
-  
+
     static value(node) {
       return node._wrapper;
     }
   }
-  
-  
-  
+
+  UploadImageBlot.blotName = 'uploaded-image';
+  UploadImageBlot.tagName = 'div';
+  UploadImageBlot.className = 'uploaded-image';
+
   return UploadImageBlot;
 };
